@@ -7,7 +7,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function POST(req: Request) {
   const body = await req.text();
-  const signature = headers().get("stripe-signature");
+  const headersList = await headers();
+  const signature = headersList.get("stripe-signature");
 
   if (!signature) {
     return NextResponse.json({ error: "Missing signature" }, { status: 400 });
@@ -30,12 +31,10 @@ export async function POST(req: Request) {
 
   try {
     switch (event.type) {
-      // ✅ УСПЕШНО ПЛАЩАНЕ (най-важното)
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
 
         const userId = session.metadata?.user_id;
-
         if (!userId) {
           console.error("Missing user_id in metadata");
           break;
@@ -49,11 +48,10 @@ export async function POST(req: Request) {
           status: "active",
         });
 
-        console.log("✅ Premium активиран за:", userId);
+        console.log("Premium активиран за:", userId);
         break;
       }
 
-      // 🔄 update статус (renew / trial / pause)
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
 
@@ -67,7 +65,6 @@ export async function POST(req: Request) {
         break;
       }
 
-      // ❌ отменен абонамент
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
 
@@ -78,7 +75,7 @@ export async function POST(req: Request) {
           })
           .eq("stripe_subscription_id", subscription.id);
 
-        console.log("❌ Premium премахнат:", subscription.id);
+        console.log("Premium премахнат:", subscription.id);
         break;
       }
 
