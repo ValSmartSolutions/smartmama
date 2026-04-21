@@ -65,7 +65,7 @@ export default async function MealPlanPage() {
     .maybeSingle();
 
   const freeUsed = usage?.count ?? 0;
-  const freeRemaining = Math.max(0, 1 - freeUsed);
+  const freeRemaining = Math.max(0, 3 - freeUsed);
 
   return (
     <>
