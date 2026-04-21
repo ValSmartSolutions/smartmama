@@ -51,10 +51,10 @@ export async function POST(req: Request) {
     }
 
     // 👉 различен лимит ако искаш (пример: 1 free)
-    if (!isPremium && usage.count >= 1) {
+    if (!isPremium && usage.count >= 3) {
       return NextResponse.json({
         paywall: true,
-        message: "Използва безплатната консултация за сън. Отключи Premium за неограничен достъп.",
+        message: "Използва безплатните консултации за сън. Отключи Premium за неограничен достъп.",
       });
     }
 

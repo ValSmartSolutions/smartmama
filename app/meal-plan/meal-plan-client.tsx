@@ -89,7 +89,7 @@ export default function MealPlanClient({
           ) : (
             <div className="space-y-3">
               <div className="rounded-2xl bg-amber-50 border border-amber-100 px-4 py-3 text-sm font-medium text-amber-700">
-                Остават ти <span className="font-bold">{freeRemaining}</span> от 1 безплатно меню.
+                Остават ти <span className="font-bold">{freeRemaining}</span> от 3 безплатни менюта.
               </div>
 
               <p className="text-xs text-gray-500">

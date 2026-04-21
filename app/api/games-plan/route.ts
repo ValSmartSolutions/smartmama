@@ -50,10 +50,10 @@ export async function POST(req: Request) {
       usage = newUsage;
     }
 
-    if (!isPremium && usage.count >= 1) {
+    if (!isPremium && usage.count >= 3) {
       return NextResponse.json({
         paywall: true,
-        message: "Използва безплатната идея за игра. Отключи SmartMama Premium за неограничен достъп.",
+        message: "Използва безплатните идеи за игра. Отключи SmartMama Premium за неограничен достъп.",
       });
     }
 

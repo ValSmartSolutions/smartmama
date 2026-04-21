@@ -85,7 +85,7 @@ export default function SleepClient({
           ) : (
             <div className="space-y-3">
               <div className="rounded-2xl bg-amber-50 border border-amber-100 px-4 py-3 text-sm font-medium text-amber-700">
-                Остава ти <span className="font-bold">{freeRemaining}</span> от 1 безплатен съвет за сън.
+                Остава ти <span className="font-bold">{freeRemaining}</span> от 3 безплатни съвета за сън.
               </div>
 
               <p className="text-xs text-gray-500">
