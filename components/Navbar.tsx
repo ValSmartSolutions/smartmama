@@ -21,6 +21,33 @@ export default function Navbar({
   activeChildId?: string | null;
 }) {
   const pathname = usePathname();
+  const [portalLoading, setPortalLoading] = useState(false);
+
+async function handleOpenPortal() {
+  try {
+    setPortalLoading(true);
+
+    const res = await fetch("/api/create-portal-session", {
+      method: "POST",
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Грешка при отваряне на портала.");
+    }
+
+    if (!data.url) {
+      throw new Error("Липсва portal URL.");
+    }
+
+    window.location.href = data.url;
+  } catch (error: any) {
+    alert(error?.message || "Неуспешно отваряне на портала.");
+  } finally {
+    setPortalLoading(false);
+  }
+}
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
@@ -96,7 +123,14 @@ export default function Navbar({
       {open && (
         <div className="absolute top-full right-4 mt-2 w-64 rounded-2xl border bg-white shadow-xl p-3 space-y-2">
           {isPremium && (
-            <button onClick={handleOpenPortal} className="premium-badge">💎 Premium активен</button>
+            <button
+			  type="button"
+			  onClick={handleOpenPortal}
+			  disabled={portalLoading}
+			  className="premium-badge"
+				>
+				{portalLoading ? "Отваряне..." : "💎 Premium активен"}
+				</button>
           )}
           <ChildSwitcher
             children={childrenList}
