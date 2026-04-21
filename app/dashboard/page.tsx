@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "../../lib/supabase/server";
 import Navbar from "../../components/Navbar";
+import ManageSubscriptionButton from "../../components/ManageSubscriptionButton";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -76,6 +77,11 @@ export default async function DashboardPage() {
                 {isPremium
                   ? "Premium е активен. Имаш неограничен достъп до всички функции."
                   : "Free план. Имаш ограничени безплатни опити за всяка функция."}
+				  {isPremium ? (
+					<div className="mt-4">
+				<ManageSubscriptionButton />
+					</div>
+				) : null}
               </div>
 
               <div className="rounded-2xl border border-[var(--border)] bg-white px-4 py-3 text-sm">

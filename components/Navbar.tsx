@@ -96,11 +96,8 @@ export default function Navbar({
       {open && (
         <div className="absolute top-full right-4 mt-2 w-64 rounded-2xl border bg-white shadow-xl p-3 space-y-2">
           {isPremium && (
-            <div className="rounded-xl bg-amber-50 border border-amber-100 px-3 py-2 text-xs font-semibold text-amber-700">
-              💎 Premium активен
-            </div>
+            <button onClick={handleOpenPortal} className="premium-badge">💎 Premium активен</button>
           )}
-
           <ChildSwitcher
             children={childrenList}
             activeChildId={activeChildId}
@@ -113,7 +110,6 @@ export default function Navbar({
           {navItem("/games", "🧩", "Игри")}
           {navItem("/development", "📈", "Развитие")}
           {navItem("/development-card", "🖼️", "Карта")}
-          {navItem("/pricing", "💎", "Premium")}
 
           <div className="border-t my-2" />
 
