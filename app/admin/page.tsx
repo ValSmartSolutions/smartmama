@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "../../lib/supabase/server";
 import Navbar from "../../components/Navbar";
+import Link from "next/link";
 
 export default async function AdminPage() {
   const supabase = await createClient();
@@ -126,6 +127,11 @@ export default async function AdminPage() {
                       key={userId}
                       className="rounded-3xl border border-[var(--border)] bg-white p-4 md:p-5"
                     >
+					<div className="mt-4">
+					<Link href={`/admin/users/${userId}`} className="secondary-btn">
+					Отвори потребител
+					</Link>
+					</div>
                       <div className="flex items-center justify-between gap-4 flex-wrap">
                         <div>
                           <p className="text-sm text-gray-500 mb-1">User ID</p>
