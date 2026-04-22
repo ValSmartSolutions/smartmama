@@ -3,6 +3,12 @@ import Link from "next/link";
 import { createClient } from "../../../../lib/supabase/server";
 import Navbar from "../../../../components/Navbar";
 import AdminPremiumButton from "../../../../components/AdminPremiumButton";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
+
+const supabaseAdmin = createAdminClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export default async function AdminUserPage({
   params,
@@ -42,7 +48,8 @@ export default async function AdminUserPage({
   const { data: ownChildren } = await supabase
     .from("children")
     .select("id, child_name")
-    .eq("user_id", user.id);
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
 
   const { data: preferences } = await supabase
     .from("user_preferences")
@@ -50,30 +57,53 @@ export default async function AdminUserPage({
     .eq("user_id", user.id)
     .maybeSingle();
 
-  const { data: targetSubscription } = await supabase
+  const {
+    data: { users: authUsers },
+    error: authUsersError,
+  } = await supabaseAdmin.auth.admin.listUsers();
+
+  if (authUsersError) {
+    console.error("auth admin listUsers error:", authUsersError);
+  }
+
+  const targetAuthUser = (authUsers ?? []).find((u) => u.id === userId) ?? null;
+
+  const { data: targetSubscription, error: targetSubscriptionError } = await supabaseAdmin
     .from("subscriptions")
     .select("*")
     .eq("user_id", userId)
     .maybeSingle();
 
+  if (targetSubscriptionError) {
+    console.error("target subscription error:", targetSubscriptionError);
+  }
+
   const stripePremium =
     !!targetSubscription &&
     ["active", "trialing"].includes(targetSubscription.status || "");
 
-  const { data: manualPremium } = await supabase
+  const { data: manualPremium, error: manualPremiumError } = await supabaseAdmin
     .from("manual_premium_access")
     .select("*")
     .eq("user_id", userId)
     .maybeSingle();
 
+  if (manualPremiumError) {
+    console.error("manual premium error:", manualPremiumError);
+  }
+
   const manualPremiumActive = !!manualPremium?.is_active;
   const effectivePremium = stripePremium || manualPremiumActive;
 
-  const { data: children } = await supabase
+  const { data: children, error: childrenError } = await supabaseAdmin
     .from("children")
     .select("*")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
+
+  if (childrenError) {
+    console.error("target children error:", childrenError);
+  }
 
   return (
     <>
@@ -93,6 +123,9 @@ export default async function AdminUserPage({
                   Детайл на потребител
                 </h1>
                 <p className="hero-text break-all">
+                  {targetAuthUser?.email || "Няма имейл"}
+                </p>
+                <p className="text-sm text-gray-500 mt-2 break-all">
                   User ID: {userId}
                 </p>
               </div>
@@ -103,7 +136,7 @@ export default async function AdminUserPage({
             </div>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-4">
             <div className="card p-5">
               <p className="text-sm text-gray-500 mb-1">Краен статус</p>
               <p className="text-2xl font-extrabold">
@@ -122,6 +155,13 @@ export default async function AdminUserPage({
               <p className="text-sm text-gray-500 mb-1">Ръчен Premium</p>
               <p className="text-2xl font-extrabold">
                 {manualPremiumActive ? "Да" : "Не"}
+              </p>
+            </div>
+
+            <div className="card p-5">
+              <p className="text-sm text-gray-500 mb-1">Деца</p>
+              <p className="text-2xl font-extrabold">
+                {children?.length ?? 0}
               </p>
             </div>
           </div>
@@ -151,7 +191,10 @@ export default async function AdminUserPage({
             ) : (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {children.map((child: any) => (
-                  <div key={child.id} className="rounded-3xl border border-[var(--border)] bg-white p-5">
+                  <div
+                    key={child.id}
+                    className="rounded-3xl border border-[var(--border)] bg-white p-5"
+                  >
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-pink-300 to-blue-300 text-white font-bold flex items-center justify-center text-lg shrink-0">
                         {(child.child_name || "Д").charAt(0).toUpperCase()}
