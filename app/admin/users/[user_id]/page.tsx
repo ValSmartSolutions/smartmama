@@ -4,7 +4,7 @@ import { createClient } from "../../../../lib/supabase/server";
 import Navbar from "../../../../components/Navbar";
 import AdminPremiumButton from "../../../../components/AdminPremiumButton";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
-
+console.log("ADMIN PARAMS:", await params);
 const supabaseAdmin = createAdminClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -13,9 +13,9 @@ const supabaseAdmin = createAdminClient(
 export default async function AdminUserPage({
   params,
 }: {
-  params: { userId: string };
+  params: Promise<{ userId: string }>;
 }) {
-  const userId = params.userId;
+  const { userId } = await params;
 
   const supabase = await createClient();
 
