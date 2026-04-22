@@ -13,10 +13,9 @@ const supabaseAdmin = createAdminClient(
 export default async function AdminUserPage({
   params,
 }: {
-  params: Promise<{ userId: string }>;
+  params: Promise<{ user_id: string }>;
 }) {
-  const { userId } = await params;
-  
+  const { user_id } = await params;
   const userId = user_id;
   const supabase = await createClient();
 
