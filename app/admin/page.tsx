@@ -70,9 +70,13 @@ export default async function AdminPage() {
     .from("manual_premium_access")
     .select("user_id, is_active");
 
-  const { data: allChildren } = await supabase
-    .from("children")
-    .select("user_id, id");
+  const { data: allChildren, error: allChildrenError } = await supabaseAdmin
+  .from("children")
+  .select("user_id, id");
+
+if (allChildrenError) {
+  console.error("admin allChildren error:", allChildrenError);
+}
 
   const premiumMap = new Map(
     (allSubscriptions ?? []).map((s: any) => [
