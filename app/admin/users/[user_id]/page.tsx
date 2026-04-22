@@ -16,7 +16,7 @@ export default async function AdminUserPage({
   params: Promise<{ userId: string }>;
 }) {
   const { userId } = await params;
-
+  const userId = user_id;
   const supabase = await createClient();
 
   const {
