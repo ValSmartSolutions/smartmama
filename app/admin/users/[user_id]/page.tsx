@@ -13,9 +13,10 @@ const supabaseAdmin = createAdminClient(
 export default async function AdminUserPage({
   params,
 }: {
-  params: Promise<{ userId: string }>;
+  params: { userId: string };
 }) {
-  const { userId } = await params;
+  const userId = params.userId;
+
   const supabase = await createClient();
 
   const {
@@ -48,8 +49,7 @@ export default async function AdminUserPage({
   const { data: ownChildren } = await supabase
     .from("children")
     .select("id, child_name")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+    .eq("user_id", user.id);
 
   const { data: preferences } = await supabase
     .from("user_preferences")
@@ -175,12 +175,6 @@ export default async function AdminUserPage({
                 isManualPremiumActive={manualPremiumActive}
               />
             </div>
-
-            {manualPremium?.note ? (
-              <p className="text-sm text-gray-500 mt-3">
-                Бележка: {manualPremium.note}
-              </p>
-            ) : null}
           </div>
 
           <div className="card p-6">
