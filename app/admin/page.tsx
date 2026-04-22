@@ -2,6 +2,12 @@ import { redirect } from "next/navigation";
 import { createClient } from "../../lib/supabase/server";
 import Navbar from "../../components/Navbar";
 import Link from "next/link";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
+
+const supabaseAdmin = createAdminClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export default async function AdminPage() {
   const supabase = await createClient();
@@ -45,34 +51,68 @@ export default async function AdminPage() {
     .eq("user_id", user.id)
     .maybeSingle();
 
-  const activeChildId = preferences?.active_child_id ?? null;
+  const {
+    data: { users: authUsers },
+    error: authUsersError,
+  } = await supabaseAdmin.auth.admin.listUsers();
 
-  const { data: users } = await supabase
-    .from("children")
-    .select("user_id, id")
-    .order("created_at", { ascending: false });
+  if (authUsersError) {
+    console.error("auth admin listUsers error:", authUsersError);
+  }
 
-  const uniqueUserIds = Array.from(new Set((users ?? []).map((x: any) => x.user_id)));
+  const allUserIds = (authUsers ?? []).map((u) => u.id);
 
   const { data: allSubscriptions } = await supabase
     .from("subscriptions")
     .select("user_id, status");
 
+  const { data: manualPremiumRows } = await supabase
+    .from("manual_premium_access")
+    .select("user_id, is_active");
+
+  const { data: allChildren } = await supabase
+    .from("children")
+    .select("user_id, id");
+
   const premiumMap = new Map(
-    (allSubscriptions ?? []).map((s: any) => [s.user_id, ["active", "trialing"].includes(s.status || "")])
+    (allSubscriptions ?? []).map((s: any) => [
+      s.user_id,
+      ["active", "trialing"].includes(s.status || ""),
+    ])
+  );
+
+  const manualPremiumMap = new Map(
+    (manualPremiumRows ?? []).map((row: any) => [row.user_id, !!row.is_active])
   );
 
   const childCountMap = new Map<string, number>();
-  for (const row of users ?? []) {
+  for (const row of allChildren ?? []) {
     childCountMap.set(row.user_id, (childCountMap.get(row.user_id) || 0) + 1);
   }
+
+  const enrichedUsers = (authUsers ?? []).map((authUser) => {
+    const stripePremium = !!premiumMap.get(authUser.id);
+    const manualPremium = !!manualPremiumMap.get(authUser.id);
+
+    return {
+      id: authUser.id,
+      email: authUser.email || "Няма имейл",
+      createdAt: authUser.created_at,
+      stripePremium,
+      manualPremium,
+      effectivePremium: stripePremium || manualPremium,
+      childCount: childCountMap.get(authUser.id) || 0,
+    };
+  });
+
+  const premiumCount = enrichedUsers.filter((u) => u.effectivePremium).length;
 
   return (
     <>
       <Navbar
         isPremium={isPremium}
         childrenList={children ?? []}
-        activeChildId={activeChildId}
+        activeChildId={preferences?.active_child_id ?? null}
       />
 
       <main className="page-wrap pb-32">
@@ -90,19 +130,17 @@ export default async function AdminPage() {
           <div className="grid gap-4 md:grid-cols-3">
             <div className="card p-5">
               <p className="text-sm text-gray-500 mb-1">Потребители</p>
-              <p className="text-3xl font-extrabold">{uniqueUserIds.length}</p>
+              <p className="text-3xl font-extrabold">{allUserIds.length}</p>
             </div>
 
             <div className="card p-5">
               <p className="text-sm text-gray-500 mb-1">Premium</p>
-              <p className="text-3xl font-extrabold">
-                {uniqueUserIds.filter((id) => premiumMap.get(id)).length}
-              </p>
+              <p className="text-3xl font-extrabold">{premiumCount}</p>
             </div>
 
             <div className="card p-5">
               <p className="text-sm text-gray-500 mb-1">Деца общо</p>
-              <p className="text-3xl font-extrabold">{(users ?? []).length}</p>
+              <p className="text-3xl font-extrabold">{(allChildren ?? []).length}</p>
             </div>
           </div>
 
@@ -110,53 +148,63 @@ export default async function AdminPage() {
             <div className="flex items-center justify-between gap-3 mb-5 flex-wrap">
               <h2 className="text-2xl font-bold">Потребители</h2>
               <div className="text-sm text-gray-500">
-                Начална версия на админ панела
+                Всички регистрирани акаунти от Supabase Auth
               </div>
             </div>
 
-            {uniqueUserIds.length === 0 ? (
-              <p className="text-gray-600">Все още няма данни.</p>
+            {enrichedUsers.length === 0 ? (
+              <p className="text-gray-600">Все още няма потребители.</p>
             ) : (
               <div className="space-y-3">
-                {uniqueUserIds.map((userId) => {
-                  const isUserPremium = !!premiumMap.get(userId);
-                  const childCount = childCountMap.get(userId) || 0;
+                {enrichedUsers.map((item) => (
+                  <div
+                    key={item.id}
+                    className="rounded-3xl border border-[var(--border)] bg-white p-4 md:p-5"
+                  >
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                      <div className="min-w-0">
+                        <p className="font-semibold break-all">{item.email}</p>
+                        <p className="text-sm text-gray-500 break-all mt-1">
+                          {item.id}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Регистрация:{" "}
+                          {item.createdAt
+                            ? new Date(item.createdAt).toLocaleString("bg-BG")
+                            : "—"}
+                        </p>
+                      </div>
 
-                  return (
-                    <div
-                      key={userId}
-                      className="rounded-3xl border border-[var(--border)] bg-white p-4 md:p-5"
-                    >
-					<div className="mt-4">
-					<Link href={`/admin/users/${userId}`} className="secondary-btn">
-					Отвори потребител
-					</Link>
-					</div>
-                      <div className="flex items-center justify-between gap-4 flex-wrap">
-                        <div>
-                          <p className="text-sm text-gray-500 mb-1">User ID</p>
-                          <p className="font-semibold break-all">{userId}</p>
-                        </div>
+                      <div className="flex gap-2 flex-wrap">
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-semibold border ${
+                            item.effectivePremium
+                              ? "bg-green-50 text-green-700 border-green-100"
+                              : "bg-gray-50 text-gray-700 border-gray-200"
+                          }`}
+                        >
+                          {item.effectivePremium ? "Premium" : "Free"}
+                        </span>
 
-                        <div className="flex gap-2 flex-wrap">
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-semibold border ${
-                              isUserPremium
-                                ? "bg-green-50 text-green-700 border-green-100"
-                                : "bg-gray-50 text-gray-700 border-gray-200"
-                            }`}
-                          >
-                            {isUserPremium ? "Premium" : "Free"}
+                        {item.manualPremium ? (
+                          <span className="rounded-full px-3 py-1 text-xs font-semibold border bg-amber-50 text-amber-700 border-amber-100">
+                            Manual Premium
                           </span>
+                        ) : null}
 
-                          <span className="rounded-full px-3 py-1 text-xs font-semibold border bg-pink-50 text-pink-700 border-pink-100">
-                            {childCount} {childCount === 1 ? "дете" : "деца"}
-                          </span>
-                        </div>
+                        <span className="rounded-full px-3 py-1 text-xs font-semibold border bg-pink-50 text-pink-700 border-pink-100">
+                          {item.childCount} {item.childCount === 1 ? "дете" : "деца"}
+                        </span>
                       </div>
                     </div>
-                  );
-                })}
+
+                    <div className="mt-4">
+                      <Link href={`/admin/users/${item.id}`} className="secondary-btn">
+                        Отвори потребител
+                      </Link>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
